@@ -1,5 +1,79 @@
 #!/bin/bash
 
+# threshold values
+CPU_THRESHOLD=70
+MEMORY_THRESHOLD=85
+DISK_THRESHOLD=90
+
+# mail to send the alert
+EMAIL="victorjoly40@gmail.com"
+
+# Couleur rouge pour les alertes
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Check CPU usage
+check_cpu() {
+  CPU_USAGE=$(mpstat 1 1 | awk '/Average/ {print 100 - $NF}')
+  echo $CPU_USAGE
+}
+
+# Check RAM usage
+check_memory() {
+  MEMORY_USAGE=$(free -m | awk 'NR==2{printf "%.2f", $3*100/$2 }')
+  echo $MEMORY_USAGE
+}
+
+# Check disk usage
+check_disk() {
+  DISK_USAGE=$(df -h --total | grep 'total' | awk '{print $5}' | tr -d '%')
+  echo $DISK_USAGE
+}
+
+print_alert() {
+  local resource=$1
+  local usage=$2
+  local threshold=$3
+
+  echo -e "${RED}Alert: High usage of $resource - Use: $usage%, Threshold: $threshold%${NC}"
+}
 
 
+send_alert() {
+  local resource=$1
+  local usage=$2
+  local threshold=$3
 
+  SUBJECT="Alert: High usage of $resource"
+  MESSAGE="The usage of $resource has reached $usage%, which exceeds $threshold%."
+
+  echo $MESSAGE | mail -s "$SUBJECT" $EMAIL
+}
+
+# Boucle de surveillance
+while true; do
+  CPU_USAGE=$(check_cpu)
+  MEMORY_USAGE=$(check_memory)
+  DISK_USAGE=$(check_disk)
+
+  # Affichage des valeurs pour le débogage
+  echo "CPU Usage: $CPU_USAGE%"
+  echo "Memory Usage: $MEMORY_USAGE%"
+  echo "Disk Usage: $DISK_USAGE%"
+
+  # Comparaisons directes avec `-eq 1`
+  if [ $(echo "$CPU_USAGE >= $CPU_THRESHOLD" | bc) -eq 1 ]; then
+    send_alert "CPU" "$CPU_USAGE" "$CPU_THRESHOLD"
+  fi
+
+  if [ $(echo "$MEMORY_USAGE >= $MEMORY_THRESHOLD" | bc) -eq 1 ]; then
+    send_alert "Mémoire" "$MEMORY_USAGE" "$MEMORY_THRESHOLD"
+  fi
+
+  if [ $(echo "$DISK_USAGE >= $DISK_THRESHOLD" | bc) -eq 1 ]; then
+    send_alert "Disque" "$DISK_USAGE" "$DISK_THRESHOLD"
+  fi
+
+  # Pause de 60 secondes avant la prochaine vérification
+  sleep 300
+done
