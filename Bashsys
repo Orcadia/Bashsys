@@ -26,7 +26,6 @@ check_disk() {
   echo $DISK_USAGE
 }
 
-
 send_alert() {
   local resource=$1
   local usage=$2
