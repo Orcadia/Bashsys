@@ -8,10 +8,6 @@ DISK_THRESHOLD=90
 # mail to send the alert
 EMAIL="victorjoly40@gmail.com"
 
-# Couleur rouge pour les alertes
-RED='\033[0;31m'
-NC='\033[0m' # No Color
-
 # Check CPU usage
 check_cpu() {
   CPU_USAGE=$(mpstat 1 1 | awk '/Average/ {print 100 - $NF}')
@@ -30,14 +26,6 @@ check_disk() {
   echo $DISK_USAGE
 }
 
-print_alert() {
-  local resource=$1
-  local usage=$2
-  local threshold=$3
-
-  echo -e "${RED}Alert: High usage of $resource - Use: $usage%, Threshold: $threshold%${NC}"
-}
-
 
 send_alert() {
   local resource=$1
@@ -50,30 +38,30 @@ send_alert() {
   echo $MESSAGE | mail -s "$SUBJECT" $EMAIL
 }
 
-# Boucle de surveillance
+# Monitoring loop
 while true; do
   CPU_USAGE=$(check_cpu)
   MEMORY_USAGE=$(check_memory)
   DISK_USAGE=$(check_disk)
 
-  # Affichage des valeurs pour le débogage
-  echo "CPU Usage: $CPU_USAGE%"
-  echo "Memory Usage: $MEMORY_USAGE%"
-  echo "Disk Usage: $DISK_USAGE%"
+  # Display the values for debugging
+  #echo "CPU Usage: $CPU_USAGE%"
+  #echo "Memory Usage: $MEMORY_USAGE%"
+  #cho "Disk Usage: $DISK_USAGE%"
 
-  # Comparaisons directes avec `-eq 1`
+  # if statements to check if the value is superior to the threshold
   if [ $(echo "$CPU_USAGE >= $CPU_THRESHOLD" | bc) -eq 1 ]; then
     send_alert "CPU" "$CPU_USAGE" "$CPU_THRESHOLD"
   fi
 
   if [ $(echo "$MEMORY_USAGE >= $MEMORY_THRESHOLD" | bc) -eq 1 ]; then
-    send_alert "Mémoire" "$MEMORY_USAGE" "$MEMORY_THRESHOLD"
+    send_alert "RAM" "$MEMORY_USAGE" "$MEMORY_THRESHOLD"
   fi
 
   if [ $(echo "$DISK_USAGE >= $DISK_THRESHOLD" | bc) -eq 1 ]; then
-    send_alert "Disque" "$DISK_USAGE" "$DISK_THRESHOLD"
+    send_alert "DISK space" "$DISK_USAGE" "$DISK_THRESHOLD"
   fi
 
-  # Pause de 60 secondes avant la prochaine vérification
-  sleep 300
+  # Pause of 60 seconds to the next verification
+  sleep 60
 done
