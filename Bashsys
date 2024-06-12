@@ -2,11 +2,12 @@
 
 # threshold values
 CPU_THRESHOLD=70
-MEMORY_THRESHOLD=85
+MEMORY_THRESHOLD=75
 DISK_THRESHOLD=90
 
 # mail to send the alert
 EMAIL="victorjoly40@gmail.com"
+
 
 # Check CPU usage
 check_cpu() {
@@ -37,30 +38,46 @@ send_alert() {
   echo $MESSAGE | mail -s "$SUBJECT" $EMAIL
 }
 
+VALUE=0
 # Monitoring loop
 while true; do
   CPU_USAGE=$(check_cpu)
   MEMORY_USAGE=$(check_memory)
   DISK_USAGE=$(check_disk)
 
-  # Display the values for debugging
-  #echo "CPU Usage: $CPU_USAGE%"
-  #echo "Memory Usage: $MEMORY_USAGE%"
-  #cho "Disk Usage: $DISK_USAGE%"
+  
+  if [ $VALUE -ge 60 ]; then
+    VALUE=0
+  fi
+  # debugging
+  echo "$VALUE"
+
+  # Display the values for debugging in Bashsys.log
+  echo "CPU Usage: $CPU_USAGE%"
+  echo "Memory Usage: $MEMORY_USAGE%"
+  echo "Disk Usage: $DISK_USAGE%"
 
   # if statements to check if the value is superior to the threshold
   if [ $(echo "$CPU_USAGE >= $CPU_THRESHOLD" | bc) -eq 1 ]; then
-    send_alert "CPU" "$CPU_USAGE" "$CPU_THRESHOLD"
+    if [ $VALUE -eq 0 ]; then
+      send_alert "CPU" "$CPU_USAGE" "$CPU_THRESHOLD"
+    fi
   fi
 
   if [ $(echo "$MEMORY_USAGE >= $MEMORY_THRESHOLD" | bc) -eq 1 ]; then
-    send_alert "RAM" "$MEMORY_USAGE" "$MEMORY_THRESHOLD"
+    if [ $VALUE -eq 0 ]; then
+      send_alert "RAM" "$MEMORY_USAGE" "$MEMORY_THRESHOLD"
+    fi
   fi
 
   if [ $(echo "$DISK_USAGE >= $DISK_THRESHOLD" | bc) -eq 1 ]; then
-    send_alert "DISK space" "$DISK_USAGE" "$DISK_THRESHOLD"
+    if [ $VALUE -eq 0 ]; then
+      send_alert "DISK space" "$DISK_USAGE" "$DISK_THRESHOLD"
+    fi
   fi
 
-  # Pause of 60 seconds to the next verification
-  sleep 60
+  VALUE=$((VALUE + 10))
+
+  # Pause of 10 seconds to the next verification
+  sleep 10
 done
